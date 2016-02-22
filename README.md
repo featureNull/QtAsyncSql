@@ -45,7 +45,7 @@ Next in any thread an AsyncQuery can be created, configured and started:
 
 When database access is finished the SIGNAL is triggered and the SLOT prints the result table:
 
-```
+```cpp
 void MainWindow::onExecDone(const Database::AsyncQueryResult &result)
 {
 	if (!result.isValid()) {
@@ -71,17 +71,17 @@ Maintains the database connection for asynchrone queries. Internally several con
 
 ###AsyncQuery Class
 Asynchronous queries are started via:
-```
+```cpp
 void startExec(const QString &query);
 ```
  There is also support for prepared statements with value binding.  (Note that dabase preparation is currently done each time startExec() is called -> need to be fixed.)
-```
+```cpp
 void prepare(const QString &query);
 void bindValue(const QString &placeholder, const QVariant &val);
 void startExec();
 ```
 Following signals are provided:
-```
+```cpp
 void execDone(const Database::AsyncQueryResult& result); // query has finished execution
 void busyChanged(bool busy); // busy indicator
 ```
@@ -96,7 +96,7 @@ Subsquent queries for this object are started in a Fifo fashion. A Subsequent qu
 
 ####Convenience Functions
 If a query should be executed just once AsynQuery provides 2 static convenience functions (`static void startExecOnce(...)`) where no explicit object needs to be created
-```
+```cpp
 //signal slot style
  Database::AsyncQuery::startExecOnce("SELECT name FROM sqlite_master WHERE type='table'",
 	this, SLOT(myExecDoneHandler(const Database::AsyncQueryResult &)));
@@ -108,8 +108,8 @@ Database::AsyncQuery::startExecOnce("SELECT name FROM sqlite_master WHERE type='
 ```
 
 
-##AsyncQueryResult Class
+###AsyncQueryResult Class
 The query result is retreived via the getter functions. If an sql error occured AsyncQueryResult is not valid and the error can be retrieved.
 
-##AsyncQueryModel Class
+###AsyncQueryModel Class
 The AsyncQueryModel class implementents a QtAbstractTableModel for asynchronous queries which can be used with a QTableView to show the query results.
