@@ -4,15 +4,15 @@ QT based classes to support asynchronous and threaded SQL queries.
 ##Introduction
 
 ###Overview
-Qt provides QSqlQuery class for synchronous database access. Often asynchronous and threaded database access is desired. This implementation provides a implementation f or asynchronous database access using the Qt Api.
+Qt provides QSqlQuery class for synchronous database access. Often asynchronous and threaded database access is desired. This implementation provides a implementation for asynchronous database access using the Qt Api.
 
 ### Features 
-* Asynchronous SQL queries with SIGNAL/SLOT mechanism.
+* Asynchronous SQL queries with Qt's SIGNAL and SLOT mechanism.
 * Database access from distinct threads. 
-(Fills the gap of Qt's Database Api: *"A connection can only be used from within the thread that created it."* See http://doc.qt.io/qt-5/threads-modules.html#threads-and-the-sql-module).
-* Fast Parallel query execution. 
+(Closes the gap of Qt's Database Api: *"A connection can only be used from within the thread that created it."* See http://doc.qt.io/qt-5/threads-modules.html#threads-and-the-sql-module).
+* Fast parallel query execution. 
 AsyncQueries internally are distributed via QRunnable tasks in a QThreadPool which is designed to optimally leverage the available number of cores on your hardware. There is no massive thread generation if a lot of queries are started.
-* Different execution modes Parallel, Fifo and SkipPrevious.
+* Different execution modes *Parallel*, *Fifo* and *SkipPrevious*.
 
 ### Make
 To build the demo application simply run  `qmake && make` or open `QtAsyncSql.pro` file in qtCreator. 
@@ -20,7 +20,7 @@ For the implementation **Qt5.5** and **c++11** compiler was used (Note that the 
 
 
 ###Example Usage
-All relevant classes (can be found in the folder Database) are embedded in the namspace `Database`. In the main function the ConnectionManager need to be created, set up and destroyed:
+All relevant classes (can be found in the folder Database) are embedded in the namespace `Database`. In the main function the ConnectionManager need to be created, set up and destroyed:
 ```cpp
 int main(int argc, char *argv[])
 {
@@ -67,7 +67,7 @@ The QtAsyncSql Demo application (build the application) demonstrates all provide
 This section describes the implemented interface. For further details it is refered to the comments in the header files.
 
 ###ConnectionManager Class
-Maintains the database connection for asynchrone queries. Internally several connection are opened to access the database from different threads.
+Maintains the database connection for asynchrone queries. Internally several connections are opened to access the database from different threads.
 
 ###AsyncQuery Class
 Asynchronous queries are started via:
@@ -87,15 +87,25 @@ void busyChanged(bool busy); // busy indicator
 ```
 
 #### Modes
+The different modes define how subsequent `startExec(...)` calls are handled.
+
 * **Mode_Parallel** (default)
- All queries for this object are started immediately and run in parallel. The order in which subsequent queries are executed and finished can not be guaranteed. Each query is started as soon as possible. 
+ All queries started by the AsyncQuery object are started immediately and run in parallel. The order in which subsequent queries are executed and finished can not be guaranteed. Each query is started as soon as possible. 
 * **Mode_Fifo**
-Subsquent queries for this object are started in a Fifo fashion. A Subsequent query waits until the last query is finished. This guarantees the order of query sequences. 
+Subsquent queries for the AsyncQuery object are started in a Fifo fashion. A Subsequent query waits until the last query is finished. This guarantees the order of query sequences. 
 * **Mode_SkipPrevious**
- Same as **Mode_Fifo**, but if a previous startExec call is not executed yet it is skipped and overwritten by the currrent query. E.g. if a graphical slider is bound to a sql query heavy database access can be ommited by using this mode.
+ Same as **Mode_Fifo**, but if a previous `startExec(...)` call is not executed yet it is skipped and overwritten by the currrent query. E.g. if a graphical slider is bound to a sql query heavy database access can be ommited by using this mode (see the demo application).
 
 ####Convenience Functions
-If a query should be executed just once AsynQuery provides 2 static convenience functions (`static void startExecOnce(...)`) where no explicit object needs to be created
+If a query should be executed just once AsynQuery provides 2 static convenience functions (`static void startExecOnce
+(...)`) where no explicit object needs to be created.
+```cpp
+static void startExecOnce(const QString& query, QObject* receiver,const char* member);
+template <typename Func1>
+	static inline void startExecOnce(const QString& query, Func1 slot)
+```
+Which can be used as follows:
+
 ```cpp
 //signal slot style
  Database::AsyncQuery::startExecOnce("SELECT name FROM sqlite_master WHERE type='table'",
@@ -107,9 +117,38 @@ Database::AsyncQuery::startExecOnce("SELECT name FROM sqlite_master WHERE type='
 	});
 ```
 
+####Others
+Block the calling thread until all started queries are executed (allow synchronous execution):
+```
+bool waitDone(ulong msTimout = ULONG_MAX);
+```
+Delay each query execution for `ms` milliseconds before it is started. This does not block the calling thread, but only the internall query thread  (is mainly used for testing, see the demo):
+```cpp
+void setDelayMs(ulong ms);
+```
+
 
 ###AsyncQueryResult Class
 The query result is retreived via the getter functions. If an sql error occured AsyncQueryResult is not valid and the error can be retrieved.
 
 ###AsyncQueryModel Class
 The AsyncQueryModel class implementents a QtAbstractTableModel for asynchronous queries which can be used with a QTableView to show the query results.
+
+Create the model and bind it to a view:
+```cpp
+Database::AsyncQueryModel *queryModel = new Database::AsyncQueryModel();
+QTableView *view = new QTableView();
+view->setModel(queryModel);
+view->show();
+```
+Start query directly:
+```cpp
+queryModel->startExec("SELECT * FROM Companies"); //updates the bound views
+```
+Or via the model's AsyncQuery object:
+```cpp
+Database::AsyncQuery *query = queryModel->asyncQuery();
+query->prepare("SELECT * FROM Products WHERE UnitPrice < :price");
+query->bindValue(":price", value);
+query->startExec(); //updates the bound views
+```
