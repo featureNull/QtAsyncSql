@@ -4,7 +4,7 @@ QT based classes to support asynchronous and threaded SQL queries.
 ##Introduction
 
 ###Overview
-Qt provides QSqlQuery class for synchronous database access. Often asynchronous and threaded database access is desired. This implementation provides a implementation for asynchronous database access using the Qt Api.
+Qt provides QSqlQuery class for synchronous database access. Often asynchronous and threaded database access is desired. QtAsyncSql provides a implementation for asynchronous database access using the Qt Api.
 
 ### Features 
 * Asynchronous SQL queries with Qt's SIGNAL and SLOT mechanism.
